@@ -101,7 +101,7 @@ if __name__ == "__main__":
     logger.debug(brand_name.shape)
 
     price = data['price'].values
-    price = np.expand_dims(price, axis=1)
+    price = np.expand_dims(price, axis=1).astype(np.float64)
     np.save('train_data/%s' % 'price', price)
     logger.debug('price')
     logger.debug(array.shape)

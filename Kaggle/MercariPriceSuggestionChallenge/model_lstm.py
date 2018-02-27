@@ -123,61 +123,41 @@ class ModelLSTM(nn.Module):
         self.lstm_item_description = nn.LSTM(
             num_dim, hidden_size, batch_first=True)
 
-        # self.dropout_cat = nn.Dropout(0.5)
-        # self.bn_cat = nn.BatchNorm1d(num_lstm * 2)
+        self.dropout_cat = nn.Dropout(0.5)
+        self.bn_cat = nn.BatchNorm1d(326)
 
-        # self.fc1 = nn.Linear(num_lstm * 2, num_dense)
-        # self.dropout_fc1 = nn.Dropout(0.5)
-        # self.bn_fc1 = nn.BatchNorm1d(num_dense)
+        self.fc1 = nn.Linear(326, 326)
+        self.bn_fc1 = nn.BatchNorm1d(326)
 
-        # self.fc3 = nn.Linear(num_dense, 2)
+        self.fc3 = nn.Linear(326, 1)
 
     def forward(self, name, item_condition_id, category_name, brand_name, shipping, price, item_description):
 
         name = self.embedding_name(name)
         name, _ = self.lstm_name(name)
         name = name[:, -1, :]
-        # logger.debug(name)
 
-        # logger.debug(category_name)
         category_name = self.embedding_category_name(category_name)
-        # logger.debug(category_name)
         category_name, _ = self.lstm_category_name(category_name)
         category_name = category_name[:, -1, :]
-        # logger.debug(category_name)
 
         item_description = self.embedding_item_description(item_description)
         item_description, _ = self.lstm_item_description(item_description)
         item_description = item_description[:, -1, :]
-        # logger.debug(item_description)
 
-        # logger.debug(brand_name)
         brand_name = self.embedding_brand_name(brand_name)
         brand_name = torch.squeeze(brand_name, 1)
-        logger.debug(brand_name)
 
         x = torch.cat([name, item_condition_id.float(), category_name,
                        brand_name, shipping.float(), item_description], 1)
-        logger.debug(x.data.shape)
-        # logger.debug(name.data.shape)
-        # logger.debug(item_condition_id.data.shape)
 
-        # logger.debug(type(name))
-        # logger.debug(type(name.data))
-        # logger.debug(type(item_condition_id))
-        # logger.debug(type(item_condition_id.data))
+        x = self.dropout_cat(x)
+        x = self.bn_cat(x)
+        x = F.relu(x)
 
-        # x = torch.cat([name, item_condition_id.float()], 1)
-        # logger.debug(x.shape)
-        # x = self.dp1(x)
-        # x = self.bn1(x)
-
-        # x = self.fc2(x)
-        # x = F.relu(x)
-        # x = self.dp2(x)
-        # x = self.bn2(x)
-
-        # x = self.fc3(x)
+        x = self.bn_fc1(x)
+        x = self.fc3(x)
+        x = F.relu(x)
         return x
 
 
@@ -189,7 +169,6 @@ if __name__ == "__main__":
     logger.debug(model)
     optimizer = optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
-    # criterion = nn.CrossEntropyLoss().cuda()
 
     for i in range(epoch_num):
         model.train()
@@ -200,7 +179,7 @@ if __name__ == "__main__":
             category_name = batch[2].cuda()
             brand_name = batch[3].cuda()
             shipping = batch[4].cuda()
-            price = batch[5].cuda()
+            price = batch[5].float().cuda()
             item_description = batch[6].cuda()
 
             output = model(
@@ -212,31 +191,33 @@ if __name__ == "__main__":
                 Variable(price),
                 Variable(item_description),
             )
+            # logger.debug(type(output.data))
 
-            label = Variable(label)
+            price = Variable(torch.squeeze(price, 1))
 
             optimizer.zero_grad()
-            loss = F.nll_loss(output, label, class_weight)
+            loss = F.mse_loss(output, price)
             loss.backward()
             optimizer.step()
-            train_loss_list.append(loss.data[0])
+            logger.debug(loss.data[0])
+            # train_loss_list.append(loss.data[0])
 
-        model.eval()
-        val_loss_list = []
-        for batch in (val_data_loader):
-            input1 = batch[0].cuda()
-            input2 = batch[1].cuda()
-            label = batch[2].cuda()
+        # model.eval()
+        # val_loss_list = []
+        # for batch in (val_data_loader):
+        #     input1 = batch[0].cuda()
+        #     input2 = batch[1].cuda()
+        #     label = batch[2].cuda()
 
-            output = model(Variable(input1), Variable(input2))
-            label = Variable(label)
+        #     output = model(Variable(input1), Variable(input2))
+        #     label = Variable(label)
 
-            loss = F.nll_loss(output, label, class_weight)
-            val_loss_list.append(loss.data[0])
+        #     loss = F.nll_loss(output, label, class_weight)
+        #     val_loss_list.append(loss.data[0])
 
-        avg_train_loss = sum(train_loss_list) * 1.0 / len(train_loss_list)
-        avg_val_loss = sum(val_loss_list) * 1.0 / len(val_loss_list)
+        # avg_train_loss = sum(train_loss_list) * 1.0 / len(train_loss_list)
+        # avg_val_loss = sum(val_loss_list) * 1.0 / len(val_loss_list)
 
-        print 'epoch:%d avg_train_loss=%lf avg_val_loss=%lf' % (i, avg_train_loss, avg_val_loss)
-        if i % model_save_interval == 0:
-            torch.save(model, 'model_lstm/model_%d' % (i))
+        # print 'epoch:%d avg_train_loss=%lf avg_val_loss=%lf' % (i, avg_train_loss, avg_val_loss)
+        # if i % model_save_interval == 0:
+        #     torch.save(model, 'model_lstm/model_%d' % (i))
