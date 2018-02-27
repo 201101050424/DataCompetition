@@ -74,6 +74,7 @@ if __name__ == "__main__":
     tokenizer.fit_on_texts(all_text)
     
     for item in ['name', 'category_name', 'item_description']:
+        logger.debug(item)
         array = tokenizer.texts_to_sequences(data[item].str.lower())
         array = pad_sequences(array, maxlen=20, padding='post')
         np.save('train_data/%s' % item, array)
@@ -89,7 +90,6 @@ if __name__ == "__main__":
         enc.fit(array)
         array = enc.transform(array).toarray()
         np.save('train_data/%s' % item, array)
-        logger.debug(array.shape)
 
     logger.debug('brand_name')
     brand_name = data['brand_name'].values

@@ -1,11 +1,11 @@
 IS_DEBUG = True
-# IS_DEBUG = False
+IS_DEBUG = False
 
 data_origin = './train.tsv'
-batch_size=2048
+batch_size=2000
 if IS_DEBUG:
     data_origin = './train_debug.tsv'
-    batch_size=10
+    batch_size=500
 split_per = 0.8
 train_data_preprocess = './train_preprocess'
 test_data_preprocess = './test_preprocess'

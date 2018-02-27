@@ -87,11 +87,18 @@ class DatasetTrain(torch.utils.data.Dataset):
         self.brand_name = torch.from_numpy(
             np.load('./train_data/brand_name.npy')).type(torch.LongTensor)
         self.price = torch.from_numpy(
-            np.load('./train_data/price.npy')).type(torch.LongTensor)
+            np.load('./train_data/price.npy')).type(torch.FloatTensor)
         self.shipping = torch.from_numpy(
             np.load('./train_data/shipping.npy')).type(torch.LongTensor)
         self.item_description = torch.from_numpy(
             np.load('./train_data/item_description.npy')).type(torch.LongTensor)
+
+        logger.debug(self.name.shape)
+        logger.debug(self.item_condition_id.shape)
+        logger.debug(self.brand_name.shape)
+        logger.debug(self.price.shape)
+        logger.debug(self.shipping.shape)
+        logger.debug(self.item_description.shape)
 
     def __len__(self):
         return self.name.shape[0]
@@ -103,7 +110,7 @@ class DatasetTrain(torch.utils.data.Dataset):
 class ModelLSTM(nn.Module):
     def __init__(self):
         super(ModelLSTM, self).__init__()
-        num_word = 90000
+        num_word = 900000
         num_dim = 20
         num_brand_name = 5000
         self.embedding_name = nn.Embedding(
@@ -123,13 +130,14 @@ class ModelLSTM(nn.Module):
         self.lstm_item_description = nn.LSTM(
             num_dim, hidden_size, batch_first=True)
 
+        fc_dim = 327
         self.dropout_cat = nn.Dropout(0.5)
-        self.bn_cat = nn.BatchNorm1d(326)
+        self.bn_cat = nn.BatchNorm1d(fc_dim)
 
-        self.fc1 = nn.Linear(326, 326)
-        self.bn_fc1 = nn.BatchNorm1d(326)
+        self.fc1 = nn.Linear(fc_dim, fc_dim)
+        self.bn_fc1 = nn.BatchNorm1d(fc_dim)
 
-        self.fc3 = nn.Linear(326, 1)
+        self.fc3 = nn.Linear(fc_dim, 1)
 
     def forward(self, name, item_condition_id, category_name, brand_name, shipping, price, item_description):
 
@@ -150,12 +158,8 @@ class ModelLSTM(nn.Module):
 
         x = torch.cat([name, item_condition_id.float(), category_name,
                        brand_name, shipping.float(), item_description], 1)
-
-        x = self.dropout_cat(x)
-        x = self.bn_cat(x)
         x = F.relu(x)
 
-        x = self.bn_fc1(x)
         x = self.fc3(x)
         x = F.relu(x)
         return x
@@ -163,7 +167,7 @@ class ModelLSTM(nn.Module):
 
 if __name__ == "__main__":
     data_loader = torch.utils.data.DataLoader(
-        DatasetTrain(), batch_size=batch_size, shuffle=True)
+        DatasetTrain(), batch_size=500, shuffle=True)
 
     model = ModelLSTM().cuda()
     logger.debug(model)
@@ -191,7 +195,6 @@ if __name__ == "__main__":
                 Variable(price),
                 Variable(item_description),
             )
-            # logger.debug(type(output.data))
 
             price = Variable(torch.squeeze(price, 1))
 
