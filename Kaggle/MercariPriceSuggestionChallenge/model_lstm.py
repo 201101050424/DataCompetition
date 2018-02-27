@@ -135,22 +135,40 @@ class ModelLSTM(nn.Module):
     def forward(self, name, item_condition_id, category_name, brand_name, shipping, price, item_description):
 
         name = self.embedding_name(name)
-        name = self.lstm_name(name)
+        name, _ = self.lstm_name(name)
         name = name[:, -1, :]
+        # logger.debug(name)
 
+        # logger.debug(category_name)
         category_name = self.embedding_category_name(category_name)
-        category_name = self.lstm_category_name(category_name)
+        # logger.debug(category_name)
+        category_name, _ = self.lstm_category_name(category_name)
         category_name = category_name[:, -1, :]
+        # logger.debug(category_name)
 
         item_description = self.embedding_item_description(item_description)
-        item_description = self.lstm_item_description(item_description)
+        item_description, _ = self.lstm_item_description(item_description)
         item_description = item_description[:, -1, :]
+        # logger.debug(item_description)
 
+        # logger.debug(brand_name)
         brand_name = self.embedding_brand_name(brand_name)
+        brand_name = torch.squeeze(brand_name, 1)
+        logger.debug(brand_name)
 
-        x = torch.cat([name, item_condition_id, category_name,
-                       brand_name, shipping, item_description], 1)
-        logger.debug(x.shape)
+        x = torch.cat([name, item_condition_id.float(), category_name,
+                       brand_name, shipping.float(), item_description], 1)
+        logger.debug(x.data.shape)
+        # logger.debug(name.data.shape)
+        # logger.debug(item_condition_id.data.shape)
+
+        # logger.debug(type(name))
+        # logger.debug(type(name.data))
+        # logger.debug(type(item_condition_id))
+        # logger.debug(type(item_condition_id.data))
+
+        # x = torch.cat([name, item_condition_id.float()], 1)
+        # logger.debug(x.shape)
         # x = self.dp1(x)
         # x = self.bn1(x)
 
@@ -165,13 +183,13 @@ class ModelLSTM(nn.Module):
 
 if __name__ == "__main__":
     data_loader = torch.utils.data.DataLoader(
-        DatasetTrain(), batch_size=2048, shuffle=True)
+        DatasetTrain(), batch_size=batch_size, shuffle=True)
 
     model = ModelLSTM().cuda()
     logger.debug(model)
     optimizer = optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
-    criterion = nn.CrossEntropyLoss().cuda()
+    # criterion = nn.CrossEntropyLoss().cuda()
 
     for i in range(epoch_num):
         model.train()

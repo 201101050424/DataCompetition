@@ -75,10 +75,8 @@ if __name__ == "__main__":
     
     for item in ['name', 'category_name', 'item_description']:
         array = tokenizer.texts_to_sequences(data[item].str.lower())
-        array = pad_sequences(array, maxlen=20)
+        array = pad_sequences(array, maxlen=20, padding='post')
         np.save('train_data/%s' % item, array)
-        logger.debug(item)
-        logger.debug(array.shape)
 
     for item in ['item_condition_id', 'shipping']:
         logger.debug(item)
